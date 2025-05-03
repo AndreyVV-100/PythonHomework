@@ -1,0 +1,45 @@
+services:
+  web:
+    # Сборка на основе Dockerfile
+    build: .
+    # Перед запуском приложения выполняются миграции БД
+    command: sh -c 'fastapi run app/main.py --port 80 --workers 4'
+    volumes:
+      - .:/app
+    ports:
+      - "80:80"
+    env_file: ".env"
+    # Контейнеры приложения и СУБД будут в одной сети
+    networks:
+      - small-task-manager
+    # Контейнер приложения запускается после проверки работоспособности СУБД
+    depends_on:
+      db:
+        condition: service_healthy
+        restart: true
+
+  db:
+    image: postgres:12.5
+    # Проверка работоспособности СУБД
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
+    # Том для сохранения данных после завершения работы контейнера
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    env_file:
+      - ./postgres.env
+    ports:
+      - "5432:5432"
+    networks:
+      - small-task-manager
+
+networks:
+      small-task-manager:
+        driver: bridge
+
+volumes:
+  postgres_data:
