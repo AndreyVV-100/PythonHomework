@@ -1,4 +1,14 @@
 from fastapi import FastAPI
+from app.routes import (task)
+
+# Uncomment if you need to create tables on app start >>>
+from contextlib import asynccontextmanager
+from app.db import init_database
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_database()
+    yield
 
 app = FastAPI(
     title="Система управления задачами",
@@ -12,5 +22,9 @@ app = FastAPI(
     license_info={
         "name": "MIT",
         "url": "https://opensource.org/licenses/MIT",
-    }
+    },
+    # Uncomment if you need to create tables on app start
+    lifespan=lifespan
 )
+
+app.include_router(task.router)
