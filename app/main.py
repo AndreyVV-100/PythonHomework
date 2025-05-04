@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.routes import (auth, task, utils)
+from app.routes import (assignment, auth, task, utils)
 
 # Uncomment if you need to create tables on app start >>>
 from contextlib import asynccontextmanager
@@ -27,6 +27,7 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+app.include_router(assignment.router)
 app.include_router(auth.router)
 app.include_router(task.router)
 app.include_router(utils.router)

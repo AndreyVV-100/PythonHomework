@@ -33,7 +33,7 @@ class TaskCreate(BaseModel):
     )
 
     needed_role: str = Field(
-        description = "Квалификация для выполнения задачи"
+        description = "Квалификация для выполнения задачи."
     )
 
 class TaskRead(TaskCreate):
@@ -54,6 +54,7 @@ class User(SQLModel, table=True):
     first_name: str
     last_name: str
     role: str
+    workload: float
 
     model_config = SettingsConfigDict(
         json_schema_extra = {
@@ -62,6 +63,12 @@ class User(SQLModel, table=True):
                 "last_name": "Иванов",
                 "role": "senior",
                 "email": "user@example.com",
-                "password": "qwerty"
+                "password": "qwerty",
+                "workload": 0.0
             }
         })
+
+class Assignment(SQLModel, table=True):
+    assignment_id: int = SQLField(default=None, nullable=False, primary_key=True)
+    task_id: int = SQLField(nullable=False, unique_items=True)
+    user_id: int
