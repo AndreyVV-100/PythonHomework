@@ -36,7 +36,6 @@ class TaskCreate(BaseModel):
         description = "Квалификация для выполнения задачи"
     )
 
-
 class TaskRead(TaskCreate):
     task_id: int
     deadline: date
@@ -46,3 +45,23 @@ class TaskRead(TaskCreate):
 class Task(SQLModel, TaskRead, table=True):
     task_id: int = SQLField(default=None, nullable=False, primary_key=True)
     # project: int = SQLField(default=None, nullable=True, foreign_key="project.project_id")
+
+class User(SQLModel, table=True):
+    __table_args__ = (UniqueConstraint("email"),)
+    user_id: int = SQLField(default=None, nullable=False, primary_key=True)
+    email: str = SQLField(nullable=True, unique_items=True)
+    password: str
+    first_name: str
+    last_name: str
+    role: str
+
+    model_config = SettingsConfigDict(
+        json_schema_extra = {
+            "example": {
+                "first_name": "Иван",
+                "last_name": "Иванов",
+                "role": "senior",
+                "email": "user@example.com",
+                "password": "qwerty"
+            }
+        })
