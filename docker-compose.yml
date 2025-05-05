@@ -2,7 +2,6 @@ services:
   web:
     # Сборка на основе Dockerfile
     build: .
-    # Перед запуском приложения выполняются миграции БД
     command: sh -c 'fastapi run app/main.py --port 80 --workers 4'
     volumes:
       - .:/app
