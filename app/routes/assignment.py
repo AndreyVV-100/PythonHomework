@@ -1,8 +1,10 @@
+"""Routes for task assignments"""
+
+from typing import Annotated, List
 from fastapi import APIRouter, status, Depends, HTTPException
 from sqlmodel import Session, select
 from app.db import get_session
 from ..schemas import schemas
-from typing import Annotated, List
 from ..logic.auth import get_current_user
 from ..logic.schedule import schedule_tasks
 
@@ -11,8 +13,9 @@ router = APIRouter(prefix="/assignment", tags=["Назначенные зада�
 @router.post("/", status_code=status.HTTP_201_CREATED,
              response_model=schemas.Assignment)
 def create_assignment(assignment: schemas.Assignment,
-                      current_user: Annotated[schemas.User, Depends(get_current_user)],
+                      _current_user: Annotated[schemas.User, Depends(get_current_user)],
                       session: Session = Depends(get_session)):
+    """Assign task to user"""
     statement = (select(schemas.User)
                  .where(schemas.User.user_id == assignment.user_id))
     existing_user = session.exec(statement).first()
@@ -32,13 +35,13 @@ def create_assignment(assignment: schemas.Assignment,
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Task {assignment.task_id} not found"
         )
-    
+
     if existing_task.needed_role != existing_user.role:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Can't assign {existing_task.needed_role} task to {existing_user.role} user"
         )
-    
+
     new_assignment = schemas.Assignment(
         user_id = assignment.user_id,
         task_id = assignment.task_id
@@ -51,20 +54,22 @@ def create_assignment(assignment: schemas.Assignment,
         session.commit()
         session.refresh(new_assignment)
         return new_assignment
-    except:
+    except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Task {assignment.task_id} already assigned"
-        )
+        ) from e
 
 @router.get("/", status_code=status.HTTP_200_OK,
             response_model=List[schemas.Assignment])
-def read_assignments(current_user: Annotated[schemas.User, Depends(get_current_user)], session: Session = Depends(get_session)):
+def read_assignments(_current_user: Annotated[schemas.User, Depends(get_current_user)],
+                     session: Session = Depends(get_session)):
+    """Get all assignments"""
     assignments = session.exec(select(schemas.Assignment)).all()
     if assignments is None or len(assignments) == 0:
         raise HTTPException(
             status_code=status.HTTP_204_NO_CONTENT,
-            detail=f"The assignment list is empty."
+            detail="The assignment list is empty."
         )
     return assignments
 
@@ -72,9 +77,11 @@ def read_assignments(current_user: Annotated[schemas.User, Depends(get_current_u
 @router.get("/{assignment_id}", status_code=status.HTTP_200_OK,
             response_model=schemas.Assignment)
 def read_assignment_by_id(assignment_id: int,
-                          current_user: Annotated[schemas.User, Depends(get_current_user)],
+                          _current_user: Annotated[schemas.User, Depends(get_current_user)],
                           session: Session = Depends(get_session)):
-    assignment = session.exec(select(schemas.Assignment).where(schemas.Assignment.assignment_id == assignment_id)).first()
+    """Get assignment by id"""
+    assignment = session.exec(select(schemas.Assignment)
+                              .where(schemas.Assignment.assignment_id == assignment_id)).first()
     if assignment is None:
         raise HTTPException(
             status_code=status.HTTP_204_NO_CONTENT,
@@ -84,15 +91,17 @@ def read_assignment_by_id(assignment_id: int,
 
 @router.delete("/{assignment_id}", status_code=status.HTTP_200_OK)
 def delete_assignment(assignment_id: int,
-                      current_user: Annotated[schemas.User, Depends(get_current_user)],
+                      _current_user: Annotated[schemas.User, Depends(get_current_user)],
                       session: Session = Depends(get_session)):
-    assignment = session.exec(select(schemas.Assignment).where(schemas.Assignment.assignment_id == assignment_id)).first()
+    """Delete assignment"""
+    assignment = session.exec(select(schemas.Assignment)
+                              .where(schemas.Assignment.assignment_id == assignment_id)).first()
     if assignment is None:
         raise HTTPException(
             status_code=status.HTTP_204_NO_CONTENT,
             detail=f"No assignment with {assignment_id} id."
         )
-    
+
     task = session.exec(select(schemas.Task)
                         .where(schemas.Task.task_id == assignment.task_id)).first()
     user = session.exec(select(schemas.User)
@@ -103,5 +112,7 @@ def delete_assignment(assignment_id: int,
     session.commit()
 
 @router.post("/schedule", status_code=status.HTTP_200_OK)
-def distribute_tasks(current_user: Annotated[schemas.User, Depends(get_current_user)], session: Session = Depends(get_session)):
+def distribute_tasks(_current_user: Annotated[schemas.User, Depends(get_current_user)],
+                     session: Session = Depends(get_session)):
+    """Distribute unassigned tasks between users"""
     return schedule_tasks(session)

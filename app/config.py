@@ -1,7 +1,10 @@
+"""Project configuration from .env"""
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    """Project configuration from .env"""
     model_config = SettingsConfigDict(env_file=".env")
     db_username: str
     db_password: str

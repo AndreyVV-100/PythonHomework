@@ -1,12 +1,13 @@
+"""Initialize FastAPI and database"""
+
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from app.routes import (assignment, auth, task, utils)
-
-# Uncomment if you need to create tables on app start >>>
-from contextlib import asynccontextmanager
 from app.db import init_database
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(_app: FastAPI):
+    """Initialize database"""
     init_database()
     yield
 

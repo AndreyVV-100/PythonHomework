@@ -1,14 +1,16 @@
+"""Routes for authentication and authorization"""
+
+from typing import Annotated, List
+from datetime import timedelta
 from fastapi import APIRouter, status, Depends, HTTPException
+from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from sqlmodel import Session, select
-from app.db import get_session
-from ..schemas import schemas
 from sqlalchemy.exc import IntegrityError
 from psycopg2.errors import UniqueViolation
-from fastapi.security.oauth2 import OAuth2PasswordRequestForm
-from ..logic import auth as auth
 from app.config import settings
-from datetime import timedelta
-from typing import Annotated, List
+from app.db import get_session
+from ..schemas import schemas
+from ..logic import auth
 from ..logic.auth import get_current_user
 
 router = APIRouter(prefix="/auth", tags=["Безопасность"])
@@ -18,6 +20,7 @@ router = APIRouter(prefix="/auth", tags=["Безопасность"])
              summary = 'Добавить пользователя')
 def create_user(user: schemas.User,
                 session: Session = Depends(get_session)):
+    """Register new user"""
     new_user = schemas.User(
         first_name=user.first_name,
         last_name=user.last_name,
@@ -36,13 +39,14 @@ def create_user(user: schemas.User,
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=f"User with email {user.email} already exists"
-        )
+        ) from e
 
 
 @router.post("/login", status_code=status.HTTP_200_OK,
              summary = 'Войти в систему')
 def user_login(login_attempt_data: OAuth2PasswordRequestForm = Depends(),
                db_session: Session = Depends(get_session)):
+    """Login with email and password"""
     statement = (select(schemas.User)
                  .where(schemas.User.email == login_attempt_data.username))
     existing_user = db_session.exec(statement).first()
@@ -65,16 +69,17 @@ def user_login(login_attempt_data: OAuth2PasswordRequestForm = Depends(),
             "access_token": access_token,
             "token_type": "bearer"
         }
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Wrong password for user {login_attempt_data.username}"
-        )
+
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail=f"Wrong password for user {login_attempt_data.username}"
+    )
 
 @router.get("/me", status_code=status.HTTP_200_OK,
              summary = 'Получить информацию о себе',
              response_model=schemas.User)
 def get_me(current_user: Annotated[schemas.User, Depends(get_current_user)]):
+    """Get information about current user"""
     return schemas.User(
         first_name=current_user.first_name,
         last_name=current_user.last_name,
@@ -84,12 +89,13 @@ def get_me(current_user: Annotated[schemas.User, Depends(get_current_user)]):
         password="",
         user_id=current_user.user_id
     )
-    
+
 @router.get("/", status_code=status.HTTP_200_OK,
              summary = 'Получить информацию о всех пользователях',
              response_model=List[schemas.User])
-def get_users(current_user: Annotated[schemas.User, Depends(get_current_user)],
+def get_users(_current_user: Annotated[schemas.User, Depends(get_current_user)],
               session: Session = Depends(get_session)):
+    """Get information about all users"""
     users = session.exec(select(schemas.User)).all()
     new_users = []
     for user in users:

@@ -1,17 +1,21 @@
+"""Task scheduler"""
+
 from sqlmodel import Session, select
 from ..schemas import schemas
 
 def schedule_tasks(session: Session):
+    """Distribute unassigned tasks between users"""
     unassigned_tasks = session.exec(select(schemas.Task)
-                                    .outerjoin(schemas.Assignment,schemas.Task.task_id == schemas.Assignment.task_id)
-                                    .where(schemas.Assignment.task_id == None)).all()
+                                    .outerjoin(schemas.Assignment,
+                                               schemas.Task.task_id == schemas.Assignment.task_id)
+                                    .where(schemas.Assignment.task_id is None)).all()
     if unassigned_tasks is None or len(unassigned_tasks) == 0:
-        return None
-    
+        return
+
     users = session.exec(select(schemas.User)).all()
     if users is None or len(users) == 0:
-        return None
-    
+        return
+
     for task in unassigned_tasks:
         best_user = None
         min_workload = float("inf")

@@ -1,11 +1,14 @@
+"""SQL models for database and routes"""
+
 from datetime import date, timedelta
-from pydantic import (BaseModel, Field, BeforeValidator, EmailStr)
+from typing import Optional
+from pydantic import (BaseModel, Field)
 from pydantic_settings import SettingsConfigDict
-from typing import Optional, Annotated, TypeAlias
 from sqlalchemy import UniqueConstraint
 from sqlmodel import SQLModel, Field as SQLField
 
 class TaskCreate(BaseModel):
+    """Model for task creation"""
     description: str = Field(
         description="Описание задачи",
         max_length=300
@@ -37,16 +40,18 @@ class TaskCreate(BaseModel):
     )
 
 class TaskRead(TaskCreate):
+    """Model for task reading"""
     task_id: int
     deadline: date
     priority: int
     estimated_time: float
 
 class Task(SQLModel, TaskRead, table=True):
+    """Model for tasks database"""
     task_id: int = SQLField(default=None, nullable=False, primary_key=True)
-    # project: int = SQLField(default=None, nullable=True, foreign_key="project.project_id")
 
 class User(SQLModel, table=True):
+    """Model for users database"""
     __table_args__ = (UniqueConstraint("email"),)
     user_id: int = SQLField(default=None, nullable=False, primary_key=True)
     email: str = SQLField(nullable=True, unique_items=True)
@@ -69,6 +74,7 @@ class User(SQLModel, table=True):
         })
 
 class Assignment(SQLModel, table=True):
+    """Model for assignments database"""
     assignment_id: int = SQLField(default=None, nullable=False, primary_key=True)
     task_id: int = SQLField(nullable=False, unique_items=True)
     user_id: int
