@@ -1,7 +1,7 @@
 from fastapi import APIRouter, status, Depends, HTTPException
 from sqlmodel import Session, select
 from app.db import get_session
-from ..schemas import schemas as schema_task
+from ..schemas import schemas
 from sqlalchemy.exc import IntegrityError
 from psycopg2.errors import UniqueViolation
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
@@ -16,9 +16,9 @@ router = APIRouter(prefix="/auth", tags=["Безопасность"])
 @router.post("/signup", status_code=status.HTTP_201_CREATED,
              response_model=int,
              summary = 'Добавить пользователя')
-def create_user(user: schema_task.User,
+def create_user(user: schemas.User,
                 session: Session = Depends(get_session)):
-    new_user = schema_task.User(
+    new_user = schemas.User(
         first_name=user.first_name,
         last_name=user.last_name,
         role=user.role,
@@ -43,8 +43,8 @@ def create_user(user: schema_task.User,
              summary = 'Войти в систему')
 def user_login(login_attempt_data: OAuth2PasswordRequestForm = Depends(),
                db_session: Session = Depends(get_session)):
-    statement = (select(schema_task.User)
-                 .where(schema_task.User.email == login_attempt_data.username))
+    statement = (select(schemas.User)
+                 .where(schemas.User.email == login_attempt_data.username))
     existing_user = db_session.exec(statement).first()
 
     if not existing_user:
@@ -73,9 +73,9 @@ def user_login(login_attempt_data: OAuth2PasswordRequestForm = Depends(),
 
 @router.get("/me", status_code=status.HTTP_200_OK,
              summary = 'Получить информацию о себе',
-             response_model=schema_task.User)
-def get_me(current_user: Annotated[schema_task.User, Depends(get_current_user)]):
-    return schema_task.User(
+             response_model=schemas.User)
+def get_me(current_user: Annotated[schemas.User, Depends(get_current_user)]):
+    return schemas.User(
         first_name=current_user.first_name,
         last_name=current_user.last_name,
         role=current_user.role,
@@ -87,13 +87,13 @@ def get_me(current_user: Annotated[schema_task.User, Depends(get_current_user)])
     
 @router.get("/", status_code=status.HTTP_200_OK,
              summary = 'Получить информацию о всех пользователях',
-             response_model=List[schema_task.User])
-def get_users(current_user: Annotated[schema_task.User, Depends(get_current_user)],
+             response_model=List[schemas.User])
+def get_users(current_user: Annotated[schemas.User, Depends(get_current_user)],
               session: Session = Depends(get_session)):
-    users = session.exec(select(schema_task.User)).all()
+    users = session.exec(select(schemas.User)).all()
     new_users = []
     for user in users:
-        new_users.append(schema_task.User(
+        new_users.append(schemas.User(
             first_name=user.first_name,
             last_name=user.last_name,
             role=user.role,

@@ -4,6 +4,7 @@ from app.db import get_session
 from ..schemas import schemas
 from typing import Annotated, List
 from ..logic.auth import get_current_user
+from ..logic.schedule import schedule_tasks
 
 router = APIRouter(prefix="/assignment", tags=["Назначенные задачи"])
 
@@ -100,3 +101,7 @@ def delete_assignment(assignment_id: int,
     session.add(user)
     session.delete(assignment)
     session.commit()
+
+@router.post("/schedule", status_code=status.HTTP_200_OK)
+def distribute_tasks(current_user: Annotated[schemas.User, Depends(get_current_user)], session: Session = Depends(get_session)):
+    return schedule_tasks(session)
